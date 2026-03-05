@@ -108,9 +108,12 @@ export class TaskWorker {
           const summary = result.length > RESULT_SUMMARY_MAX_CHARS
             ? result.slice(0, RESULT_SUMMARY_MAX_CHARS) + '...'
             : result;
+          const notification = summary.length > 0
+            ? `${task.title}\n\n${summary}`
+            : task.title;
           await this.notifyCallback(
             task.sessionId,
-            `Task completed: ${task.title}\n\n${summary}`,
+            notification,
           );
         } else {
           console.log(`[worker] Task #${task.id} completed silently (nothing actionable)`);
@@ -158,7 +161,7 @@ export class TaskWorker {
     const tools = getToolDefinitions();
     const tier = (task.tier as ModelTier) || 'capable';
 
-    // Race the agent loop against a timeout
+    // Race the agent loop against a timeout (background tasks get lower iteration cap)
     const agentPromise = runAgentLoop(
       this.router,
       userMessage,
@@ -166,6 +169,8 @@ export class TaskWorker {
       systemPrompt,
       tools,
       tier,
+      undefined, // toolContext
+      10,        // maxIterations — keep background tasks lean
     );
 
     let timeoutHandle: ReturnType<typeof setTimeout>;

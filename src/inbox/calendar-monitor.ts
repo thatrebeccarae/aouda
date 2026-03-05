@@ -10,10 +10,10 @@ export class CalendarMonitor {
   private digestIntervalId: ReturnType<typeof setInterval> | null = null;
   private alertedEventIds = new Set<string>();
   private lastDigestDate: string | null = null;
-  private sendAlert: (message: string) => Promise<void>;
+  private sendAlert: (message: string, opts?: { urgent?: boolean }) => Promise<void>;
   private lastCheckAt: Date | null = null;
 
-  constructor(sendAlert: (message: string) => Promise<void>) {
+  constructor(sendAlert: (message: string, opts?: { urgent?: boolean }) => Promise<void>) {
     this.sendAlert = sendAlert;
   }
 
@@ -69,7 +69,7 @@ export class CalendarMonitor {
         if (minutesUntil <= 30 && minutesUntil >= 0) {
           this.alertedEventIds.add(event.id);
           const alert = this.formatUpcomingAlert(event, minutesUntil);
-          await this.sendAlert(alert);
+          await this.sendAlert(alert, { urgent: true });
         }
       }
 

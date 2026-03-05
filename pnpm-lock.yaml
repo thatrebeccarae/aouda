@@ -41,6 +41,9 @@ importers:
       openai:
         specifier: ^6.25.0
         version: 6.25.0(ws@8.19.0)(zod@3.25.76)
+      playwright-chromium:
+        specifier: ^1.58.2
+        version: 1.58.2
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.12
@@ -57,10 +60,6 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
-    optionalDependencies:
-      playwright-chromium:
-        specifier: ^1.58.2
-        version: 1.58.2
 
 packages:
 
@@ -2172,10 +2171,8 @@ snapshots:
   playwright-chromium@1.58.2:
     dependencies:
       playwright-core: 1.58.2
-    optional: true
 
-  playwright-core@1.58.2:
-    optional: true
+  playwright-core@1.58.2: {}
 
   prebuild-install@7.1.3:
     dependencies:

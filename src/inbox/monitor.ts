@@ -184,6 +184,7 @@ export class InboxMonitor {
           `Messages:\n${wrappedMessageList}\n\n` +
           `Rules:\n` +
           `- Newsletters, marketing, and notifications are NEVER urgent. Ignore them.\n` +
+          `- Google Drive/Docs access requests are NEVER urgent — ${OPERATOR_NAME} gets these via email and Slack already. Ignore them.\n` +
           `- Only alert for: replies from real people that need a response, bills/payments due, account issues, scheduling conflicts.\n` +
           `- When summarizing, describe what the OTHER PARTY said or needs — ${OPERATOR_NAME} already knows what they sent.\n` +
           `- Mention which account (${label}) the email arrived in.\n` +
@@ -244,10 +245,14 @@ export class InboxMonitor {
           `Review these unread emails and send ${OPERATOR_NAME} a brief summary of ONLY items that need action or a response.\n\n` +
           `${wrappedMessages}\n\n` +
           `Rules:\n` +
-          `- Skip newsletters, marketing, automated notifications.\n` +
+          `- Skip newsletters, marketing, automated notifications, Google Drive/Docs access requests.\n` +
           `- For each actionable item: which account it's in, who sent it, what they need, and any deadline.\n` +
           `- Summarize what the OTHER PARTY said — ${OPERATOR_NAME} knows what they sent.\n` +
-          `- If nothing is truly actionable, respond "No emails need attention." — do NOT send a digest.`,
+          `- If nothing is truly actionable, respond "No emails need attention." — do NOT send a digest.\n\n` +
+          `Output format (for Telegram readability):\n` +
+          `- Lead each item with urgency: "🔴 ACTION NEEDED" / "🟡 FYI" / "✅ No action needed"\n` +
+          `- Keep non-urgent items to 2-3 lines max.\n` +
+          `- Do NOT list every skipped email — just state the count (e.g., "Skipped 12 newsletters/notifications").`,
         tier: 'capable',
         source: 'system',
         sessionId: ownerSessionId ?? undefined,

@@ -32,6 +32,8 @@ import { scheduleMorningDigest } from './miniflux/digest.js';
 import { setInjectionCallback, setHeightenedSecurity } from './security/content-boundary.js';
 import { PACKAGE_NAME } from './config/identity.js';
 import { setExtractStore } from './memory/extract.js';
+import { isQuietHours } from './config/quiet-hours.js';
+import type { AlertOptions } from './config/quiet-hours.js';
 
 // ---------------------------------------------------------------------------
 // Validate env — at least one LLM backend must be available
@@ -93,6 +95,10 @@ const taskWorker = new TaskWorker({
   store,
   queue: taskQueue,
   notifyCallback: async (sessionId, message) => {
+    if (isQuietHours()) {
+      console.log('[worker] Quiet hours — task notification suppressed');
+      return;
+    }
     if (sessionId) {
       await gateway.sendToSession(sessionId, message);
     }
@@ -132,7 +138,11 @@ let calendarMonitor: CalendarMonitor | null = null;
 
 if (isProactiveEnabled()) {
   const ownerSessionId = getOwnerSessionId()!;
-  const sendAlert = async (message: string) => {
+  const sendAlert = async (message: string, opts?: AlertOptions) => {
+    if (!opts?.urgent && isQuietHours()) {
+      console.log('[proactive] Quiet hours — notification suppressed');
+      return;
+    }
     await gateway.sendToSession(ownerSessionId, message);
   };
 
@@ -148,13 +158,12 @@ if (isProactiveEnabled()) {
     console.log('[inbox] Monitor not started (Gmail not configured)');
   }
 
-  // Calendar monitor — needs Google Calendar configured
-  if (isCalendarMonitorEnabled()) {
-    calendarMonitor = new CalendarMonitor(sendAlert);
-    calendarMonitor.start();
-  } else {
-    console.log('[calendar] Monitor not started (Calendar not configured)');
-  }
+  // Calendar monitor — disabled (native calendar app handles reminders)
+  // if (isCalendarMonitorEnabled()) {
+  //   calendarMonitor = new CalendarMonitor(sendAlert);
+  //   calendarMonitor.start();
+  // }
+  console.log('[calendar] Monitor disabled (native calendar app handles this)');
 } else {
   console.log(`[${PACKAGE_NAME}] Proactive monitoring disabled (no TELEGRAM_OWNER_CHAT_ID)`);
 }
@@ -242,7 +251,13 @@ if (isProactiveEnabled() && isHeartbeatEnabled()) {
 
   heartbeatMonitor = new HeartbeatMonitor({
     router,
-    sendAlert: async (msg) => gateway.sendToSession(ownerSessionId, msg),
+    sendAlert: async (msg) => {
+      if (isQuietHours()) {
+        console.log('[heartbeat] Quiet hours — suppressed');
+        return;
+      }
+      await gateway.sendToSession(ownerSessionId, msg);
+    },
     taskQueue,
   });
   heartbeatMonitor.start();
@@ -297,6 +312,10 @@ setDashboardState({
 if (isProactiveEnabled()) {
   const ownerSessionId = getOwnerSessionId()!;
   const integrityAlert = async (message: string) => {
+    if (isQuietHours()) {
+      console.log('[integrity] Quiet hours — suppressed');
+      return;
+    }
     await gateway.sendToSession(ownerSessionId, message);
   };
   const projectRoot = new URL('..', import.meta.url).pathname;

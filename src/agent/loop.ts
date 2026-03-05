@@ -3,7 +3,8 @@ import type { ToolContext } from './tools.js';
 import { LLMRouter } from '../llm/router.js';
 import { executeTool } from './tools.js';
 
-const MAX_ITERATIONS = 10;
+const DEFAULT_MAX_ITERATIONS = 10;
+const INTERACTIVE_MAX_ITERATIONS = 25;
 
 export interface ToolCallRecord {
   name: string;
@@ -31,6 +32,7 @@ export async function runAgentLoop(
   tools: LLMToolDefinition[],
   tier?: ModelTier,
   toolContext?: ToolContext,
+  maxIterations?: number,
 ): Promise<AgentResult> {
   // Strip tier override prefixes from the message
   const cleanMessage = userMessage.replace(/@(local|haiku|sonnet|opus)\b/g, '').trim();
@@ -42,7 +44,8 @@ export async function runAgentLoop(
   const toolCalls: ToolCallRecord[] = [];
   let lastResponse: LLMResponse | null = null;
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
+  const limit = maxIterations ?? INTERACTIVE_MAX_ITERATIONS;
+  for (let i = 0; i < limit; i++) {
     const response = await router.call(messages, systemPrompt, tools, { tier });
     lastResponse = response;
 

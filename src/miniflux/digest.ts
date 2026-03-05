@@ -72,18 +72,25 @@ export async function generateMorningDigest(opts: DigestOptions): Promise<string
   }
 
   const prompt = [
-    'Summarize this RSS feed digest for a busy executive. Group by category.',
-    'For each category, list the most important/interesting items (skip noise).',
-    'Use concise bullet points. Highlight anything that seems actionable or time-sensitive.',
-    'Keep the total summary under 2000 characters.',
+    'Summarize this RSS feed digest. This will be read on a phone in Telegram.',
+    '',
+    'Format rules:',
+    '- No markdown tables, no ## headers, no emoji, no ALL CAPS.',
+    '- No "Strategic Takeaways" tables — those are just keywords, not useful.',
+    '- Plain text only. Short paragraphs and dashes for bullets.',
+    '- Group by topic area (one line label, then bullets under it).',
+    '- Skip noise — only include items worth knowing about.',
+    '- End with a "Bottom line" paragraph: 2-3 sentences on what actually matters today.',
+    '- Keep total under 1500 characters.',
     '',
     ...sections,
   ].join('\n');
 
   const messages: LLMMessage[] = [{ role: 'user', content: prompt }];
   const systemPrompt =
-    'You are a concise news digest assistant. Summarize RSS feed entries into a ' +
-    'brief, scannable morning briefing. No fluff. Lead with what matters.';
+    'You are a concise news digest assistant. Output plain text for Telegram — ' +
+    'no markdown formatting, no emoji, no tables, no caps. Just clean, scannable bullets ' +
+    'and a bottom-line summary. Lead with what matters.';
 
   try {
     const response = await opts.router.call(messages, systemPrompt, undefined, { tier: 'cheap' });
@@ -142,8 +149,8 @@ export function msUntilTime(hour: number, minute: number): number {
  * Returns a cleanup function to cancel the schedule.
  */
 export function scheduleMorningDigest(opts: DigestOptions & { hour?: number; minute?: number }): () => void {
-  const hour = opts.hour ?? 6;
-  const minute = opts.minute ?? 30;
+  const hour = opts.hour ?? 7;
+  const minute = opts.minute ?? 0;
 
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   let intervalHandle: ReturnType<typeof setInterval> | null = null;

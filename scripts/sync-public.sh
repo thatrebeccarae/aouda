@@ -99,7 +99,16 @@ if [[ -f "$SKILLS_README" ]]; then
   sedi 's/Aouda/Agent/g' "$SKILLS_README"
 fi
 
-# 7. package.json updates
+# 7. .env.example — scrub any remaining personal references in comments
+ENV_EXAMPLE="${TARGET_DIR}/.env.example"
+if [[ -f "$ENV_EXAMPLE" ]]; then
+  sedi 's/Aouda/MyAgent/g' "$ENV_EXAMPLE"
+  sedi 's/Rebecca/YourName/g' "$ENV_EXAMPLE"
+  sedi 's|~/agent-data|~/agent-data|g' "$ENV_EXAMPLE"
+  log "  .env.example scrubbed"
+fi
+
+# 8. package.json updates
 PKG_FILE="${TARGET_DIR}/package.json"
 if [[ -f "$PKG_FILE" ]]; then
   # Use node for reliable JSON manipulation
@@ -169,8 +178,8 @@ log "  .gitignore generated"
 log "Checking for personal data leaks..."
 LEAKS=0
 for pattern in "Rebecca" "/Users/tars" "Popoloto"; do
-  MATCHES=$(grep -r --include='*.ts' --include='*.json' "$pattern" \
-    "${TARGET_DIR}/src" "${TARGET_DIR}/config" 2>/dev/null || true)
+  MATCHES=$(grep -r --include='*.ts' --include='*.json' --include='*.example' "$pattern" \
+    "${TARGET_DIR}/src" "${TARGET_DIR}/config" "${TARGET_DIR}/.env.example" 2>/dev/null || true)
   if [[ -n "$MATCHES" ]]; then
     echo "  LEAK: '$pattern' found:"
     echo "$MATCHES" | head -5

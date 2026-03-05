@@ -20,10 +20,10 @@ const POLL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 export class DockerMonitor {
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private lastState = new Map<string, ServiceState>();
-  private sendAlert: (message: string) => Promise<void>;
+  private sendAlert: (message: string, opts?: { urgent?: boolean }) => Promise<void>;
   private lastCheckAt: Date | null = null;
 
-  constructor(sendAlert: (message: string) => Promise<void>) {
+  constructor(sendAlert: (message: string, opts?: { urgent?: boolean }) => Promise<void>) {
     this.sendAlert = sendAlert;
   }
 
@@ -82,7 +82,7 @@ export class DockerMonitor {
       const message = `🐳 Docker Health\n${lines.join('\n')}`;
 
       try {
-        await this.sendAlert(message);
+        await this.sendAlert(message, { urgent: true });
       } catch (err) {
         console.error('[docker] Failed to send health alert:', err);
       }
