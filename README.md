@@ -1,11 +1,34 @@
-# Agent OS
+<div align="center">
 
-A security-first personal AI agent. Single-user, self-hosted, ~9.5K LOC.
+# Aouda
 
-![TypeScript](https://img.shields.io/badge/TypeScript-ESM-3178C6?logo=typescript&logoColor=white)
-![Node](https://img.shields.io/badge/Node-%3E%3D%2022-339933?logo=node.js&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue)
-![Security](https://img.shields.io/badge/Security-OWASP%20ASI-orange)
+**A security-first personal AI agent.** Single-user, self-hosted, 42 tools, ~9.5K lines of TypeScript. Telegram-native with Gmail, Calendar, browser automation, RSS, workflow orchestration, and Claude Code handoff -- all with human-in-the-loop approval.
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-ESM-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](#)
+[![Node](https://img.shields.io/badge/Node-%3E%3D%2022-339933?style=for-the-badge&logo=node.js&logoColor=white)](#)
+[![Security](https://img.shields.io/badge/Security-OWASP%20ASI-E86E2C?style=for-the-badge&logo=owasp&logoColor=white)](SECURITY.md)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Rebecca%20Rae%20Barton-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/rebeccaraebarton)
+[![X](https://img.shields.io/badge/X-@rebeccarae-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/rebeccarae)
+[![GitHub stars](https://img.shields.io/github/stars/thatrebeccarae/aouda?style=for-the-badge&logo=github&color=181717)](https://github.com/thatrebeccarae/aouda/stargazers)
+[![License](https://img.shields.io/badge/License-MIT-0A66C2?style=for-the-badge)](LICENSE)
+[![Clone](https://img.shields.io/badge/Clone-git%20clone-f78166?style=for-the-badge&logo=git&logoColor=white)](https://github.com/thatrebeccarae/aouda)
+
+<br>
+
+```bash
+git clone https://github.com/thatrebeccarae/aouda.git
+```
+
+<br>
+
+<img src="assets/terminal.svg" alt="Aouda startup" width="760">
+
+<br>
+<br>
+
+[Why This Exists](#why-this-exists) · [Architecture](#architecture) · [Features](#features) · [Quick Start](#quick-start) · [Security](#security) · [Contributing](CONTRIBUTING.md)
+
+</div>
 
 ---
 
@@ -16,7 +39,7 @@ and maybe send a Slack message. And framework agents that hand an LLM unrestrict
 shell access, call it "autonomous," and hope for the best. The first kind isn't
 useful. The second kind isn't safe.
 
-Agent OS sits in the middle. It's a single-user agent designed for one person to
+Aouda sits in the middle. It's a single-user agent designed for one person to
 run on their own hardware, 24/7. The security model works because it doesn't try
 to be multi-tenant. There's one operator, one trust boundary, and a clear set of
 rules about what the agent can and cannot do without asking.
@@ -210,7 +233,7 @@ At least one LLM provider is also required (or a running Ollama instance):
 
 ## Personality
 
-Agent OS uses a `soul.md` file to define the agent's personality, voice, values,
+Aouda uses a `soul.md` file to define the agent's personality, voice, values,
 and behavioral boundaries. This file is loaded into the system prompt.
 
 ```bash
@@ -232,7 +255,7 @@ defined here -- there's no hardcoded persona in the source code.
 
 ## Security
 
-Agent OS takes a defense-in-depth approach to agent security, informed by the
+Aouda takes a defense-in-depth approach to agent security, informed by the
 [OWASP Agentic Security Initiative](https://owasp.org/www-project-agentic-security-initiative/)
 threat categories.
 
