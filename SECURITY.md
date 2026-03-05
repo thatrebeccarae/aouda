@@ -258,10 +258,10 @@ These are real constraints. Treat them accordingly.
 
 If you discover a security vulnerability in Agent OS:
 
-- **Email:** [TBD — maintainer security contact]
+- **Report via GitHub Security Advisories:** [github.com/thatrebeccarae/aouda/security/advisories](https://github.com/thatrebeccarae/aouda/security/advisories)
 - **Response time:** 48 hours for acknowledgment, 7 days for a fix plan
 - **Scope:** Vulnerabilities in the agent's security controls (sandbox escape, content boundary bypass, SSRF bypass, auth bypass, path traversal). Not in scope: vulnerabilities in upstream dependencies (report those to the dependency maintainer), or LLM behavioral issues (report those to the model provider).
 - **No bug bounty.** This is an individual open-source project.
 - **Credit:** Reporters will be credited in the CHANGELOG unless they request otherwise.
 
-Please do not open a public GitHub issue for security vulnerabilities. Use the email above.
+Please do not open a public GitHub issue for security vulnerabilities. Use GitHub Security Advisories instead.

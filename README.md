@@ -1,6 +1,6 @@
 # Agent OS
 
-A security-first personal AI agent. Single-user, self-hosted, ~9K LOC.
+A security-first personal AI agent. Single-user, self-hosted, ~9.5K LOC.
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-ESM-3178C6?logo=typescript&logoColor=white)
 ![Node](https://img.shields.io/badge/Node-%3E%3D%2022-339933?logo=node.js&logoColor=white)
@@ -22,7 +22,7 @@ to be multi-tenant. There's one operator, one trust boundary, and a clear set of
 rules about what the agent can and cannot do without asking.
 
 This is not a framework. It's not a starter kit. It's one person's production
-agent -- 40 tools, background task queue, proactive monitoring, browser automation,
+agent -- 42 tools, background task queue, proactive monitoring, browser automation,
 Gmail and Calendar integration, RSS digests, workflow orchestration, and a Claude
 Code handoff that lets the agent delegate coding tasks to a local Claude Code
 instance with human-in-the-loop approval.
@@ -44,7 +44,7 @@ graph LR
     subgraph Core
         GW[Gateway]
         LLM[LLM Router]
-        TR[Tool Registry<br/>40 tools]
+        TR[Tool Registry<br/>42 tools]
         MEM[(Memory<br/>SQLite)]
         TQ[Task Queue]
     end
@@ -111,6 +111,8 @@ with whatever you configure and disables the rest cleanly.
 - **Docker health monitoring** -- Proactive alerts when containers go down
 - **Dashboard** -- Web UI with status overview, log viewer, and integrity checking
 - **Heartbeat** -- Self-monitoring loop that detects anomalies and alerts the operator
+- **Quiet hours** -- Configurable window to suppress non-urgent proactive notifications overnight (Docker-down and injection alerts bypass)
+- **Remote control** -- Start a Claude Code remote session on your server and get a shareable link via Telegram
 
 ### Security
 - **Content boundaries** -- All external data (email, web, RSS, calendar) is wrapped in security markers that prevent injection
@@ -130,8 +132,8 @@ with whatever you configure and disables the rest cleanly.
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/agent-os.git
-cd agent-os
+git clone https://github.com/thatrebeccarae/aouda.git
+cd aouda
 pnpm install
 cp .env.example .env        # add your API keys and Telegram bot token
 cp config/soul.example.md config/soul.md   # customize personality

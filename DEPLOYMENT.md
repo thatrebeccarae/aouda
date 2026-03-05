@@ -30,7 +30,7 @@ This is the primary deployment target. The repository includes install and unins
 ### Install
 
 ```bash
-# Edit config/com.tars.agent.plist to set the correct paths for your system
+# Edit config/com.aouda.agent.plist to set the correct paths for your system
 bash scripts/install-service.sh
 ```
 
@@ -38,26 +38,26 @@ The install script copies the plist to `~/Library/LaunchAgents/` and loads it vi
 
 ### Logs
 
-Logs are written to `/tmp/tars-agent.log` by default (configured in the plist). Tail them with:
+Logs are written to `/tmp/aouda.log` by default (configured in the plist). Tail them with:
 
 ```bash
-tail -f /tmp/tars-agent.log
+tail -f /tmp/aouda.log
 ```
 
 ### Manage the service
 
 ```bash
 # Check status
-launchctl list | grep com.tars.agent
+launchctl list | grep com.aouda.agent
 
 # Stop
-launchctl unload ~/Library/LaunchAgents/com.tars.agent.plist
+launchctl unload ~/Library/LaunchAgents/com.aouda.agent.plist
 
 # Start
-launchctl load ~/Library/LaunchAgents/com.tars.agent.plist
+launchctl load ~/Library/LaunchAgents/com.aouda.agent.plist
 
 # Restart (kickstart)
-launchctl kickstart -k gui/$(id -u)/com.tars.agent
+launchctl kickstart -k gui/$(id -u)/com.aouda.agent
 ```
 
 The plist uses `KeepAlive` so macOS will automatically restart the agent if it crashes.
@@ -286,7 +286,7 @@ The dashboard endpoint also serves as a health check. A `200` response on `/` me
 
 ### Logs
 
-- **macOS (launchd):** `/tmp/tars-agent.log` (or as configured in the plist)
+- **macOS (launchd):** `/tmp/aouda.log` (or as configured in the plist)
 - **Linux (systemd):** `journalctl -u agent-os -f`
 - **Docker:** `docker logs -f agent-os`
 
@@ -301,7 +301,7 @@ cd /path/to/agent-os
 git pull
 pnpm install
 pnpm build
-launchctl kickstart -k gui/$(id -u)/com.tars.agent
+launchctl kickstart -k gui/$(id -u)/com.aouda.agent
 ```
 
 ### Linux (systemd)
