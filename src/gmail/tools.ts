@@ -15,8 +15,8 @@ const ACCOUNT_PROP = {
   type: 'string' as const,
   enum: ['primary', 'secondary'],
   description:
-    'Which inbox. Default: primary (operator@example.com — personal/business). ' +
-    'Use "secondary" for hello@example.com (inbound/public-facing).',
+    'Which inbox. Default: primary (personal/business). ' +
+    'Use "secondary" for inbound/public-facing.',
 };
 
 function acct(input: Record<string, unknown>): AccountId | undefined {

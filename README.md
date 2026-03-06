@@ -42,8 +42,6 @@ Aouda is an alternative -- same core functionality without the attack surface. S
 
 An active project and open-sourced as-is. Fork it, gut it, make it yours.
 
-Built by [Rebecca Barton](https://linkedin.com/in/rebeccaraebarton).
-
 ---
 
 ## Philosophy
