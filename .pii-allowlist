@@ -1,0 +1,24 @@
+# Allowlist for aouda public repo — generic/example values only
+# Each line is a regex; matching PII scan hits are suppressed.
+
+# Generic example email addresses used as defaults in code
+operator@example\.com
+hello@example\.com
+you@example\.com
+jane@example\.com
+noreply@anthropic\.com
+
+# Generic localhost URLs in example config and monitoring code
+localhost:\d+
+127\.0\.0\.1
+
+# .env.example references in .gitignore are expected
+\.env
+
+# Example config variable names and service references (not actual credentials)
+[Mm][Ii][Nn][Ii][Ff][Ll][Uu][Xx]
+[Nn]8[Nn]
+DOCKER_SERVICES=
+
+# Package author emails in lockfiles
+i@izs\.me

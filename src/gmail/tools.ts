@@ -10,13 +10,14 @@ import {
   archiveMessage,
   modifyLabels,
 } from './client.js';
+import { PRIMARY_EMAIL, SECONDARY_EMAIL } from '../config/identity.js';
 
 const ACCOUNT_PROP = {
   type: 'string' as const,
   enum: ['primary', 'secondary'],
   description:
-    'Which inbox. Default: primary (personal/business). ' +
-    'Use "secondary" for inbound/public-facing.',
+    `Which inbox. Default: primary (${PRIMARY_EMAIL} — personal/business). ` +
+    `Use "secondary" for ${SECONDARY_EMAIL} (inbound/public-facing).`,
 };
 
 function acct(input: Record<string, unknown>): AccountId | undefined {

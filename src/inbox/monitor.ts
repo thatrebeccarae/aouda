@@ -6,15 +6,15 @@ import type { AgentStore } from '../memory/store.js';
 import type { TaskQueue } from '../tasks/queue.js';
 import { getOwnerSessionId } from './config.js';
 import { wrapExternalContent } from '../security/content-boundary.js';
-import { OPERATOR_NAME } from '../config/identity.js';
+import { OPERATOR_NAME, PRIMARY_EMAIL, SECONDARY_EMAIL } from '../config/identity.js';
 
 const POLL_INTERVAL_MS = 30 * 60 * 1000;  // 30 minutes
 const DIGEST_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const MAX_SEEN_IDS = 200;
 
 const ACCOUNT_LABELS: Record<AccountId, string> = {
-  primary: 'rebecca@ (personal/business)',
-  secondary: 'hi@ (inbound/public)',
+  primary: `${PRIMARY_EMAIL} (personal/business)`,
+  secondary: `${SECONDARY_EMAIL} (inbound/public)`,
 };
 
 export class InboxMonitor {

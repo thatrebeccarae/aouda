@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { toolRegistry } from "./tools.js";
-import { AGENT_NAME, VAULT_BASE_PATH, REPO_ALIASES } from '../config/identity.js';
+import { AGENT_NAME, VAULT_BASE_PATH, REPO_ALIASES, PRIMARY_EMAIL, SECONDARY_EMAIL } from '../config/identity.js';
 
 const SOUL_PATH = path.resolve(process.cwd(), "config", "soul.md");
 
@@ -72,8 +72,8 @@ export function buildSystemPrompt(options?: PromptOptions): string {
     "",
     "### Email Accounts",
     "You have access to two Gmail inboxes. All gmail_* tools accept an optional account parameter:",
-    '- primary (default): personal and business email, calendar lives here',
-    '- secondary: inbound/assistant inbox, public-facing email on all web properties',
+    `- primary (default): ${PRIMARY_EMAIL} — personal and business email, calendar lives here`,
+    `- secondary: ${SECONDARY_EMAIL} — inbound/assistant inbox, public-facing email on all web properties`,
     '- If user says "check my email" or "inbox" without specifying, check primary',
     '- If user says "check both inboxes", check primary then secondary',
     '- Proactive monitoring polls both accounts automatically',

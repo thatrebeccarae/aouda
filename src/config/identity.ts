@@ -4,7 +4,7 @@ const HOME = process.env.HOME || '/tmp';
 const REPOS_BASE = path.join(HOME, 'agent-data', 'Repos.nosync');
 
 /** Display name for the agent (used in UI, logs, prompts). */
-export const AGENT_NAME = 'Aouda';
+export const AGENT_NAME = process.env.AGENT_NAME || 'Agent';
 
 /** Display name for the operator (used in prompts, messages). */
 export const OPERATOR_NAME = process.env.OPERATOR_NAME || 'Operator';
@@ -22,6 +22,12 @@ export const CLAUDE_CODE_ALLOWED_PATHS: string[] = process.env.CLAUDE_CODE_ALLOW
 
 /** Package name for log prefixes. */
 export const PACKAGE_NAME = process.env.PACKAGE_NAME || 'aouda';
+
+/** Primary email address (personal/business). */
+export const PRIMARY_EMAIL = process.env.PRIMARY_EMAIL || 'operator@example.com';
+
+/** Secondary email address (inbound/public-facing). */
+export const SECONDARY_EMAIL = process.env.SECONDARY_EMAIL || 'hello@example.com';
 
 /** Default repo path for Claude Code handoffs when no repo specified. */
 export const DEFAULT_REPO_PATH = process.env.DEFAULT_REPO_PATH || path.join(REPOS_BASE, 'aouda-ai');

@@ -6,13 +6,20 @@ interface ServiceEndpoint {
 
 type ServiceState = 'up' | 'down' | 'unknown';
 
-const SERVICES: ServiceEndpoint[] = [
-  { name: 'Miniflux', url: 'http://localhost:8080/healthcheck', acceptStatus: [200] },
-  { name: 'n8n', url: 'http://localhost:5678/healthz', acceptStatus: [200] },
-  { name: 'Changedetection', url: 'http://localhost:5000/', acceptStatus: [200] },
-  { name: 'Linkding', url: 'http://localhost:9090/', acceptStatus: [200, 302] },
-  { name: 'Meilisearch', url: 'http://localhost:7700/health', acceptStatus: [200] },
-];
+/**
+ * Parse DOCKER_SERVICES env var: "Name=url,Name2=url2" format.
+ * Falls back to empty list if not configured.
+ */
+function parseServicesFromEnv(): ServiceEndpoint[] {
+  const raw = process.env.DOCKER_SERVICES;
+  if (!raw) return [];
+  return raw.split(',').map((entry) => {
+    const [name, ...urlParts] = entry.trim().split('=');
+    return { name: name.trim(), url: urlParts.join('=').trim(), acceptStatus: [200, 302] };
+  }).filter((s) => s.name && s.url);
+}
+
+const SERVICES: ServiceEndpoint[] = parseServicesFromEnv();
 
 const CHECK_TIMEOUT_MS = 5_000;
 const POLL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
