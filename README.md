@@ -21,7 +21,7 @@ git clone https://github.com/thatrebeccarae/aouda.git
 
 <br>
 
-<img src="assets/terminal.svg" alt="Aouda startup" width="760">
+<img src="assets/terminal.png" alt="Aouda startup" width="760">
 
 <br>
 <br>
@@ -57,57 +57,7 @@ pragmatic, and the personality is configurable. Fork it, gut it, make it yours.
 
 ## Architecture
 
-```mermaid
-graph LR
-    subgraph Channels
-        TG[Telegram]
-        SL[Slack]
-    end
-
-    subgraph Core
-        GW[Gateway]
-        LLM[LLM Router]
-        TR[Tool Registry<br/>42 tools]
-        MEM[(Memory<br/>SQLite)]
-        TQ[Task Queue]
-    end
-
-    subgraph Integrations
-        GM[Gmail]
-        CAL[Calendar]
-        BR[Browser<br/>Playwright]
-        RSS[Miniflux<br/>RSS]
-        N8N[n8n<br/>Workflows]
-        CC[Claude Code<br/>SDK]
-    end
-
-    subgraph Infrastructure
-        SEC[Security Layer]
-        SB[Sandbox]
-        DB[Dashboard]
-        HB[Heartbeat]
-    end
-
-    TG --> GW
-    SL --> GW
-    GW --> LLM
-    LLM --> TR
-    TR --> GM
-    TR --> CAL
-    TR --> BR
-    TR --> RSS
-    TR --> N8N
-    TR --> CC
-    TR --> MEM
-    TR --> TQ
-    TR --> SB
-    SEC -.-> TR
-    HB -.-> GW
-```
-
-The LLM Router supports four providers (Anthropic, OpenAI, Gemini, Ollama) with
-automatic fallback. Every external integration is optional -- the agent starts
-with whatever you configure and disables the rest cleanly.
+<img src="assets/architecture.png" alt="Aouda architecture" width="760">
 
 ---
 
