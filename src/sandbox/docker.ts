@@ -69,7 +69,7 @@ export async function executeDocker(
         maxBuffer: maxOutput * 2,
       },
       (error, stdout, stderr) => {
-        const timedOut = error !== null && 'killed' in error && error.killed === true;
+        const timedOut = error !== null && typeof error === 'object' && 'killed' in error && error.killed === true;
 
         const outResult = truncate(stdout, maxOutput);
         const errResult = truncate(stderr, maxOutput);

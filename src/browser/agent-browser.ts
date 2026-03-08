@@ -86,7 +86,7 @@ export async function executeAgentBrowser(
       },
       (error, stdout, stderr) => {
         if (error) {
-          const timedOut = 'killed' in error && error.killed === true;
+          const timedOut = typeof error === 'object' && 'killed' in error && error.killed === true;
           if (timedOut) {
             resolve({ success: false, output: 'Error: command timed out (30s)' });
             return;
