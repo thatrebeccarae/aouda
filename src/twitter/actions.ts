@@ -55,7 +55,7 @@ export function getTwitterActionTools(): Tool[] {
           const title = await page.title();
 
           // Extract tweets on the page
-          const tweets = await page.evaluate((max) => {
+          const tweets = await page.evaluate((max: number) => {
             const tweetEls = document.querySelectorAll('[data-testid="tweetText"]');
             return Array.from(tweetEls).slice(0, 20).map((el, i) => {
               const text = (el as HTMLElement).innerText?.trim().slice(0, 500) ?? '';
@@ -68,7 +68,7 @@ export function getTwitterActionTools(): Tool[] {
           }, MAX_TEXT);
 
           // Also get general page text
-          let pageText = await page.evaluate((max) =>
+          let pageText = await page.evaluate((max: number) =>
             document.body?.innerText?.slice(0, max) ?? '', MAX_TEXT);
 
           pageText = wrapAndDetect(pageText, `twitter:${url}`);
@@ -430,7 +430,7 @@ export function getTwitterActionTools(): Tool[] {
         return withTwitterPage('https://x.com/notifications', async (page) => {
           await page.waitForTimeout(3000);
 
-          let content = await page.evaluate((max) =>
+          let content = await page.evaluate((max: number) =>
             document.body?.innerText?.slice(0, max) ?? '', MAX_TEXT);
 
           content = wrapAndDetect(content, 'twitter:notifications');

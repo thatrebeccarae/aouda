@@ -14,7 +14,7 @@ const MAX_ELEMENTS = 100;
 
 async function withPage(
   url: string,
-  fn: (page: import('playwright-chromium').Page) => Promise<string>,
+  fn: (page: import('patchright').Page) => Promise<string>,
   options?: { waitUntil?: 'load' | 'domcontentloaded' | 'networkidle'; errorPrefix?: string },
 ): Promise<string> {
   const check = await validateUrl(url);
