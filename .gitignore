@@ -10,3 +10,9 @@ config/soul.md
 *.plist
 *.log
 .syncthing.*.tmp
+PHASE_*.md
+scripts/debug-*.mjs
+scripts/check-*.mjs
+scripts/export-*.mjs
+scripts/import-*.mjs
+scripts/patch-*.py
