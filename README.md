@@ -2,7 +2,7 @@
 
 # Aouda
 
-**A security-first personal AI agent.** Single-user, self-hosted, 42 tools, 9,500 lines of TypeScript, 11 production dependencies, OWASP ASI-aligned. Telegram-native with Gmail, Calendar, browser automation, RSS, workflow orchestration, and Claude Code handoff -- all with human-in-the-loop approval.
+**A security-first personal AI agent.** Single-user, self-hosted, 54 tools, 9,500 lines of TypeScript, 11 production dependencies, OWASP ASI-aligned. Telegram-native with Gmail, Calendar, browser automation, Twitter/X, RSS, workflow orchestration, and Claude Code handoff -- all with human-in-the-loop approval.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-ESM-555?style=for-the-badge&labelColor=007ACC&logo=typescript&logoColor=white)](#)
 [![Node](https://img.shields.io/badge/Node-%3E%3D%2022-555?style=for-the-badge&labelColor=6DA55F&logo=node.js&logoColor=white)](#)
@@ -38,7 +38,7 @@ Most personal AI agents are either toys or liability. Toy projects answer questi
 
 Aouda started after [OpenClaw](https://github.com/openclaw/openclaw) -- the most starred open-source agent framework -- shipped [8 CVEs in 60 days](https://www.securityweek.com/openclaw-security-issues-continue-as-secureclaw-open-source-tool-debuts/), a [supply chain attack](https://www.scworld.com/brief/massive-openclaw-supply-chain-attack-floods-openclaw-with-malicious-skills) hit 300,000 users through its skill marketplace, and a [Kaspersky audit](https://cybersecuritynews.com/openclaw-2026-2-12-released/) found 512 vulnerabilities in the codebase.
 
-Aouda is an alternative -- same core functionality without the attack surface. Single-user, single-operator, 42 tools. Every external data path wrapped in content boundaries. Every shell command through a 4-layer permission system. Claude Code handoff with remote control sessions. Dangerous operations require human approval via Telegram. No remote skill loading, no marketplace, no multi-tenancy.
+Aouda is an alternative -- same core functionality without the attack surface. Single-user, single-operator, 54 tools. Every external data path wrapped in content boundaries. Every shell command through a 4-layer permission system. Claude Code handoff with remote control sessions. Dangerous operations require human approval via Telegram. No remote skill loading, no marketplace, no multi-tenancy.
 
 An active project and open-sourced as-is. Fork it, gut it, make it yours.
 
@@ -105,7 +105,7 @@ Different tools, different trade-offs. [OpenClaw](https://github.com/openclaw/op
 |---|---|---|---|
 | **Lines of code** | 9,500 | 430,000+ | ~2,500 core |
 | **Production dependencies** | 11 | 49 | ~15 |
-| **Tools** | 42 | 25 built-in + marketplace | Claude Code's full toolset |
+| **Tools** | 54 | 25 built-in + marketplace | Claude Code's full toolset |
 | **CVEs (lifetime)** | 0 | 8+ | 0 |
 | **Remote skill loading** | No | Yes (ClawHub) | No |
 | **LLM providers** | 4 (Anthropic, OpenAI, Gemini, Ollama) | 14 | 1 (Claude) |
@@ -142,6 +142,9 @@ What's in the missing 420,500 lines? Attack surface.
 - **Google Calendar** -- List, create, update, delete events, find free time (7 tools)
 - **Background tasks** -- Queue, schedule, and track long-running work
 - **Claude Code handoff** -- Delegate coding tasks to a local Claude Code agent with Telegram-based approval for dangerous operations
+
+### Social
+- **Twitter/X** -- Autonomous social presence with browser-based tools for posting (verified delivery), browsing, following, liking, replying, reposting, deleting, searching, and notifications (10 tools) plus post logging, metrics tracking, and performance review (3 tools)
 
 ### Research
 - **Browser automation** -- Playwright-based navigation, screenshots, extraction, form filling, and page monitoring (5 tools)
@@ -219,6 +222,9 @@ At least one LLM provider is also required (or a running Ollama instance):
 | `MINIFLUX_URL` | `http://localhost:8080` | Miniflux instance URL |
 | `N8N_API_KEY` | *(none)* | n8n workflow automation API key |
 | `N8N_URL` | `http://localhost:5678` | n8n instance URL |
+| `BROWSER_HEADLESS` | `true` | Run Playwright browser in headless mode |
+| `TWITTER_USERNAME` | *(none)* | Twitter/X username for automated login |
+| `TWITTER_PASSWORD` | *(none)* | Twitter/X password for automated login |
 | `WEBHOOK_SECRET` | *(none)* | Secret for authenticating incoming webhook requests |
 
 ---
@@ -234,11 +240,12 @@ cp config/soul.example.md config/soul.md
 
 The example file includes:
 
-- **Voice** -- Tone, verbosity preferences, formatting rules
+- **Voice** -- Tone, verbosity preferences, formatting rules (terse for tasks, conversational when given latitude)
 - **Values** -- Priority-ordered value hierarchy (safety > mission > honesty > autonomy > efficiency)
-- **Boundaries** -- Hard limits on credential exposure, infrastructure disclosure, destructive actions
+- **Boundaries** -- Hard limits on credential exposure, infrastructure disclosure, destructive actions, AI disclosure, explicit content, and minor interaction
 - **Tool behavior** -- Rules about how to use tools (summarize, don't dump raw data)
 - **Anti-patterns** -- Explicitly banned behaviors (sycophancy, filler, emotional performance)
+- **Public voice** -- Guidelines for autonomous social media presence (Twitter/X tools, posting strategy, engagement rules, hard limits on public content)
 
 Edit `soul.md` to match your preferences. The agent's personality is entirely
 defined here -- there's no hardcoded persona in the source code.
@@ -270,6 +277,7 @@ configured and cleanly disables the rest.
 | **Gmail** | Google OAuth credentials + refresh token | Inbox search, read, draft, archive, label |
 | **Google Calendar** | Google OAuth credentials + refresh token | Event CRUD, free time search |
 | **Slack** | Slack bot + app tokens | Two-way messaging channel |
+| **Twitter/X** | `playwright-chromium` + Twitter credentials | Autonomous posting, engagement, search, notifications |
 | **Browser** | `playwright-chromium` (optional dep) | Page navigation, screenshots, extraction, form fill |
 | **Miniflux** | Self-hosted Miniflux + API key | RSS search, feed browsing, morning digest |
 | **n8n** | Self-hosted n8n + API key | Workflow listing, triggering, execution monitoring |
@@ -298,6 +306,7 @@ src/
   calendar/             # Google Calendar tools
   google/               # Shared Google OAuth utilities
   browser/              # Playwright automation + agent-browser
+  twitter/              # Twitter/X tools (post, browse, follow, like, reply, search)
   miniflux/             # Miniflux RSS tools + morning digest
   n8n/                  # n8n workflow tools
   claude-code/          # Claude Code SDK executor + approval manager

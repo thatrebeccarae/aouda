@@ -1,23 +1,25 @@
 import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import { mkdirSync } from 'node:fs';
 
-// Playwright types — loaded dynamically so the package is optional
-type Browser = import('playwright-chromium').Browser;
-type BrowserContext = import('playwright-chromium').BrowserContext;
+// Playwright types — patchright is API-compatible
+type Browser = import('patchright').Browser;
+type BrowserContext = import('patchright').BrowserContext;
 
-// ── Playwright availability ────────────────────────────────────────
+// ── Patchright availability ────────────────────────────────────────
 
-let _playwrightAvailable: boolean | null = null;
+let _patchrightAvailable: boolean | null = null;
 
-/** Check if playwright-chromium is installed. Caches the result. */
+/** Check if patchright is installed. Caches the result. */
 export async function isPlaywrightAvailable(): Promise<boolean> {
-  if (_playwrightAvailable !== null) return _playwrightAvailable;
+  if (_patchrightAvailable !== null) return _patchrightAvailable;
   try {
-    await import('playwright-chromium');
-    _playwrightAvailable = true;
+    await import('patchright');
+    _patchrightAvailable = true;
   } catch {
-    _playwrightAvailable = false;
+    _patchrightAvailable = false;
   }
-  return _playwrightAvailable;
+  return _patchrightAvailable;
 }
 
 /**
@@ -25,15 +27,15 @@ export async function isPlaywrightAvailable(): Promise<boolean> {
  * Use in contexts where async isn't possible (e.g. tool registration).
  */
 export function isPlaywrightAvailableSync(): boolean {
-  if (_playwrightAvailable !== null) return _playwrightAvailable;
+  if (_patchrightAvailable !== null) return _patchrightAvailable;
   try {
     const require = createRequire(import.meta.url);
-    require.resolve('playwright-chromium');
-    _playwrightAvailable = true;
+    require.resolve('patchright');
+    _patchrightAvailable = true;
   } catch {
-    _playwrightAvailable = false;
+    _patchrightAvailable = false;
   }
-  return _playwrightAvailable;
+  return _patchrightAvailable;
 }
 
 // ── Browser config ──────────────────────────────────────────────────
@@ -53,30 +55,42 @@ export function getAllowedDomains(): string[] | null {
   return raw.split(',').map((d) => d.trim()).filter(Boolean);
 }
 
-// ── Browser instance management ─────────────────────────────────────
+// ── Persistent browser context ──────────────────────────────────────
 
-let _browser: Browser | null = null;
+const USER_DATA_DIR = resolve(process.cwd(), 'data', 'browser-profile');
 
-export async function getBrowser(): Promise<Browser> {
-  if (!_browser || !_browser.isConnected()) {
-    const { chromium } = await import('playwright-chromium');
-    _browser = await chromium.launch({ headless: true });
-  }
-  return _browser;
-}
+let _context: BrowserContext | null = null;
 
-export async function createContext(): Promise<BrowserContext> {
-  const browser = await getBrowser();
-  return browser.newContext({
-    userAgent: 'PersonalAgent/1.0 (personal assistant)',
+/**
+ * Get or create a persistent browser context.
+ * Uses patchright (undetected Playwright fork) with real Chrome and a
+ * user data directory so cookies, localStorage, and sessions survive
+ * across tool calls and restarts.
+ */
+export async function getContext(): Promise<BrowserContext> {
+  if (_context) return _context;
+
+  mkdirSync(USER_DATA_DIR, { recursive: true });
+
+  const { chromium } = await import('patchright');
+  _context = await chromium.launchPersistentContext(USER_DATA_DIR, {
+    headless: process.env.BROWSER_HEADLESS !== 'false',
+    channel: 'chrome',
     viewport: { width: 1280, height: 720 },
     locale: 'en-US',
   });
+
+  return _context;
+}
+
+/** @deprecated Use getContext() instead — kept for backward compat. */
+export async function createContext(): Promise<BrowserContext> {
+  return getContext();
 }
 
 export async function closeBrowser(): Promise<void> {
-  if (_browser) {
-    await _browser.close();
-    _browser = null;
+  if (_context) {
+    await _context.close();
+    _context = null;
   }
 }

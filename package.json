@@ -21,7 +21,8 @@
     "dotenv": "^16.4.0",
     "express": "^5.1.0",
     "grammy": "^1.35.0",
-    "openai": "^6.25.0"
+    "openai": "^6.25.0",
+    "patchright": "^1.58.2"
   },
   "optionalDependencies": {
     "playwright-chromium": "^1.58.2"

@@ -35,5 +35,11 @@ Initial pre-release. The agent has been running in production for the maintainer
 - **Security: SSRF protection** — fail-closed DNS validation for outbound requests
 - **Security: sandbox** — Docker-based and lightweight command execution with allowlists
 - **Security: OAuth token redaction** in logs and LLM context
-- **42 tools** across core, Gmail, Calendar, browser, RSS, n8n, and infrastructure
+- **Twitter/X autonomous social presence** — 10 browser-based tools for posting (with verified delivery), browsing, following/unfollowing, liking, replying, reposting, deleting, searching, and checking notifications; plus 3 tracking tools for post logging, metrics updates, and performance review
+- **soul.md: conversational voice** — voice section updated to allow richer responses in conversation while staying terse for task execution
+- **soul.md: safety boundaries** — new hard limits for AI disclosure, explicit content, and minor interaction
+- **soul.md: public voice** — dedicated section for autonomous social media presence with identity, values, posting strategy, and engagement guidelines
+- **Browser headless mode** — `BROWSER_HEADLESS` env var to toggle headless/visible browser
+- **Gateway cleanup** — removed hardcoded acknowledgment messages and model/provider footer from Telegram responses
+- **54 tools** across core, Gmail, Calendar, browser, Twitter, RSS, n8n, and infrastructure
 - **9,500 lines of TypeScript** across 60 files (ESM, Node >= 22)

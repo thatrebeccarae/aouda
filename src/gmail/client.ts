@@ -275,17 +275,27 @@ export async function createDraft(
   body: string,
   replyToMessageId?: string,
   account?: AccountId,
+  from?: string,
 ): Promise<string> {
   try {
     const g = getGmail(account);
 
     // Build RFC 2822 message — strip newlines from subject to prevent header injection
     const safeSubject = subject.replace(/[\r\n]+/g, ' ');
-    const lines = [
+    // RFC 2047 encode subject if it contains non-ASCII characters
+    const encodedSubject = /^[\x00-\x7F]*$/.test(safeSubject)
+      ? safeSubject
+      : `=?UTF-8?B?${Buffer.from(safeSubject).toString('base64')}?=`;
+    const lines: string[] = [];
+    // Set From header if specified (requires Send As configured in Gmail)
+    if (from) {
+      lines.push(`From: ${from}`);
+    }
+    lines.push(
       `To: ${to}`,
-      `Subject: ${safeSubject}`,
+      `Subject: ${encodedSubject}`,
       'Content-Type: text/plain; charset=utf-8',
-    ];
+    );
 
     let threadId: string | undefined;
     if (replyToMessageId) {

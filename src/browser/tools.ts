@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Tool } from '../agent/tools.js';
 import { isBrowserConfigured, getBrowserTimeout } from './manager.js';
 import { validateUrl } from './security.js';
-import { createContext } from './manager.js';
+import { getContext } from './manager.js';
 import { wrapAndDetect } from '../security/content-boundary.js';
 
 const WORKSPACE_DIR = path.resolve(process.cwd(), 'data', 'workspace');
@@ -20,11 +20,11 @@ async function withPage(
   const check = await validateUrl(url);
   if (!check.valid) return `Error: ${check.reason}`;
 
-  const ctx = await createContext();
+  const ctx = await getContext();
+  const page = await ctx.newPage();
   try {
-    const page = await ctx.newPage();
     await page.goto(url, {
-      waitUntil: options?.waitUntil ?? 'load',
+      waitUntil: options?.waitUntil ?? 'networkidle',
       timeout: getBrowserTimeout(),
     });
     return await fn(page);
@@ -33,7 +33,7 @@ async function withPage(
     const prefix = options?.errorPrefix ?? 'Error';
     return `${prefix} ${url}: ${msg}`;
   } finally {
-    await ctx.close();
+    await page.close();
   }
 }
 
@@ -54,14 +54,14 @@ export function getBrowserTools(): Tool[] {
           wait_for: {
             type: 'string',
             enum: ['load', 'domcontentloaded', 'networkidle'],
-            description: 'Wait condition (default: "load")',
+            description: 'Wait condition (default: "networkidle")',
           },
         },
         required: ['url'],
       },
       handler: async (input) => {
         const url = input.url as string;
-        const waitFor = (input.wait_for as 'load' | 'domcontentloaded' | 'networkidle') || 'load';
+        const waitFor = (input.wait_for as 'load' | 'domcontentloaded' | 'networkidle') || 'networkidle';
 
         return withPage(url, async (page) => {
           const title = await page.title();

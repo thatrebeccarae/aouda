@@ -32,6 +32,7 @@ import { scheduleMorningDigest } from './miniflux/digest.js';
 import { setInjectionCallback, setHeightenedSecurity } from './security/content-boundary.js';
 import { PACKAGE_NAME } from './config/identity.js';
 import { setExtractStore } from './memory/extract.js';
+import { initTwitterTools } from './twitter/tools.js';
 import { isQuietHours } from './config/quiet-hours.js';
 import type { AlertOptions } from './config/quiet-hours.js';
 
@@ -56,6 +57,7 @@ if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY && !process.en
 
 const store = new AgentStore();
 setExtractStore(store);
+initTwitterTools(store);
 const router = new LLMRouter();
 const allowedUsers = process.env.TELEGRAM_ALLOWED_USERS?.split(',').map((s) => s.trim()).filter(Boolean);
 const telegram = new TelegramChannel(TELEGRAM_BOT_TOKEN, allowedUsers);

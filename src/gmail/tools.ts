@@ -108,7 +108,11 @@ export function getGmailTools(): Tool[] {
       name: 'gmail_create_draft',
       description:
         'Create a draft email. Does NOT send — only saves as draft. ' +
-        'Optionally reply to an existing message by providing reply_to_message_id.',
+        'Optionally reply to an existing message by providing reply_to_message_id. ' +
+        `IMPORTANT: When drafting replies on behalf of the operator, create the draft in the PRIMARY account ` +
+        `(so threading works) but set "from" to "${SECONDARY_EMAIL}" so the reply comes from the assistant address. ` +
+        `This requires Send As to be configured in Gmail. ` +
+        'Sign as Agent, never as the operator. Never use emoji in subject lines or email bodies.',
       input_schema: {
         type: 'object',
         properties: {
@@ -118,6 +122,12 @@ export function getGmailTools(): Tool[] {
           reply_to_message_id: {
             type: 'string',
             description: 'Message ID to reply to (optional — threads the reply)',
+          },
+          from: {
+            type: 'string',
+            description:
+              `Optional sender address (requires Send As configured in Gmail). ` +
+              `Use "${SECONDARY_EMAIL}" when drafting replies as Agent.`,
           },
           account: ACCOUNT_PROP,
         },
@@ -130,6 +140,7 @@ export function getGmailTools(): Tool[] {
           input.body as string,
           input.reply_to_message_id as string | undefined,
           acct(input),
+          input.from as string | undefined,
         ),
     },
     {

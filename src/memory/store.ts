@@ -113,6 +113,25 @@ export class AgentStore {
         value      TEXT NOT NULL,
         updated_at TEXT DEFAULT (datetime('now'))
       );
+
+      CREATE TABLE IF NOT EXISTS twitter_posts (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        posted_at     INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+        type          TEXT    NOT NULL CHECK (type IN ('original', 'reply', 'thread', 'like', 'repost')),
+        content       TEXT    NOT NULL,
+        reply_to_url  TEXT,
+        topic         TEXT,
+        url           TEXT,
+        likes         INTEGER DEFAULT 0,
+        reposts       INTEGER DEFAULT 0,
+        replies       INTEGER DEFAULT 0,
+        impressions   INTEGER DEFAULT 0,
+        metrics_at    INTEGER,
+        notes         TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_twitter_posts_type
+        ON twitter_posts(type, posted_at);
     `);
   }
 
@@ -245,6 +264,61 @@ export class AgentStore {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
       )
       .run(key, value);
+  }
+
+  // ── Twitter Post Log ───────────────────────────────────────────
+
+  logTwitterPost(post: {
+    type: 'original' | 'reply' | 'thread' | 'like' | 'repost';
+    content: string;
+    replyToUrl?: string;
+    topic?: string;
+    url?: string;
+    notes?: string;
+  }): number {
+    const result = this.db
+      .prepare(
+        `INSERT INTO twitter_posts (type, content, reply_to_url, topic, url, notes)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(post.type, post.content, post.replyToUrl ?? null, post.topic ?? null, post.url ?? null, post.notes ?? null);
+    return Number(result.lastInsertRowid);
+  }
+
+  updateTwitterMetrics(id: number, metrics: {
+    likes?: number;
+    reposts?: number;
+    replies?: number;
+    impressions?: number;
+  }): void {
+    this.db
+      .prepare(
+        `UPDATE twitter_posts
+         SET likes = COALESCE(?, likes), reposts = COALESCE(?, reposts),
+             replies = COALESCE(?, replies), impressions = COALESCE(?, impressions),
+             metrics_at = unixepoch('now') * 1000
+         WHERE id = ?`
+      )
+      .run(metrics.likes ?? null, metrics.reposts ?? null, metrics.replies ?? null, metrics.impressions ?? null, id);
+  }
+
+  getRecentTwitterPosts(limit = 20): unknown[] {
+    return this.db
+      .prepare('SELECT * FROM twitter_posts ORDER BY posted_at DESC LIMIT ?')
+      .all(limit);
+  }
+
+  getTwitterStats(): { total: number; byType: Record<string, number>; avgLikes: number } {
+    const total = (this.db.prepare('SELECT COUNT(*) as count FROM twitter_posts').get() as { count: number }).count;
+    const byTypeRows = this.db
+      .prepare('SELECT type, COUNT(*) as count FROM twitter_posts GROUP BY type')
+      .all() as { type: string; count: number }[];
+    const byType: Record<string, number> = {};
+    for (const row of byTypeRows) byType[row.type] = row.count;
+    const avgRow = this.db
+      .prepare('SELECT AVG(likes) as avg FROM twitter_posts WHERE type IN (\'original\', \'thread\') AND likes > 0')
+      .get() as { avg: number | null };
+    return { total, byType, avgLikes: avgRow.avg ?? 0 };
   }
 
   // ── Stats ──────────────────────────────────────────────────────

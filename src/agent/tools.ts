@@ -630,6 +630,51 @@ for (const tool of getBrowserTools()) {
   register(tool);
 }
 
+
+// ── Agent-browser tool (Phase 19 - LLM-optimized browser) ───────────
+import { checkAvailability as checkAgentBrowser, executeAgentBrowser } from '../browser/agent-browser.js';
+import { wrapAndDetect } from '../security/content-boundary.js';
+
+checkAgentBrowser().then((available) => {
+  if (!available) return;
+
+  register({
+    name: 'browser_agent',
+    description:
+      'LLM-optimized browser interaction via agent-browser CLI. Uses semantic locators and ' +
+      'persistent sessions for complex web interactions (SPAs, Twitter/X, dynamic pages). ' +
+      'Commands: open <url>, snapshot (get annotated screenshot + refs), click <ref>, type <ref> <text>, ' +
+      'scroll <direction>, wait <ms>, close. ' +
+      'Workflow: open URL -> snapshot -> use refs to interact -> snapshot again to verify.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        command: {
+          type: 'string',
+          description: 'agent-browser command: open, snapshot, click, type, scroll, wait, close',
+        },
+        args: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Arguments for the command (e.g., URL for open, ref ID for click, text for type)',
+        },
+      },
+      required: ['command'],
+    },
+    handler: async (input) => {
+      const command = input.command as string;
+      const args = (input.args as string[]) || [];
+
+      const result = await executeAgentBrowser(command, args);
+
+      if (!result.success) return result.output;
+
+      const wrapped = wrapAndDetect(result.output, 'agent-browser:' + command);
+      return wrapped;
+    },
+  });
+});
+
 // ── Miniflux RSS tools (conditional on config) ──────────────────────
 import { getMinifluxTools } from '../miniflux/tools.js';
 for (const tool of getMinifluxTools()) {
@@ -639,6 +684,28 @@ for (const tool of getMinifluxTools()) {
 // ── n8n workflow tools (conditional on config) ──────────────────────
 import { getN8nTools } from '../n8n/tools.js';
 for (const tool of getN8nTools()) {
+  register(tool);
+}
+
+// ── Twitter login tool (reads credentials from env) ─────────────────
+import { getTwitterLoginTool } from "../twitter/login.js";
+const twitterLoginTool = getTwitterLoginTool();
+if (twitterLoginTool) register(twitterLoginTool);
+
+// ── Twitter post tool (compose & send tweets via browser) ────────────
+import { getTwitterPostTool } from "../twitter/post.js";
+const twitterPostTool = getTwitterPostTool();
+if (twitterPostTool) register(twitterPostTool);
+
+// ── Twitter action tools (browse, follow, like, reply, repost, delete, search, notifications)
+import { getTwitterActionTools } from "../twitter/actions.js";
+for (const tool of getTwitterActionTools()) {
+  register(tool);
+}
+
+// ── Twitter post log tools ───────────────────────────────────────────
+import { getTwitterTools } from '../twitter/tools.js';
+for (const tool of getTwitterTools()) {
   register(tool);
 }
 

@@ -10,7 +10,16 @@ import { OPERATOR_NAME, PRIMARY_EMAIL, SECONDARY_EMAIL } from '../config/identit
 
 const POLL_INTERVAL_MS = 30 * 60 * 1000;  // 30 minutes
 const DIGEST_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const SPAM_SCAN_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MAX_SEEN_IDS = 200;
+
+/** High-signal keywords that indicate a spam-filtered message may be a false positive. */
+const SPAM_RESCUE_KEYWORDS = [
+  'interview', 'offer', 'meeting', 'schedule', 'calendar', 'invite',
+  'invoice', 'payment', 'contract', 'proposal', 'follow up', 'following up',
+  'next steps', 'opportunity', 'position', 'role', 'candidate',
+  'speaking', 'conference', 'award', 'nomination',
+];
 
 const ACCOUNT_LABELS: Record<AccountId, string> = {
   primary: `${PRIMARY_EMAIL} (personal/business)`,
@@ -20,6 +29,7 @@ const ACCOUNT_LABELS: Record<AccountId, string> = {
 export class InboxMonitor {
   private pollIntervalId: ReturnType<typeof setInterval> | null = null;
   private digestIntervalId: ReturnType<typeof setInterval> | null = null;
+  private spamScanIntervalId: ReturnType<typeof setInterval> | null = null;
   private store: AgentStore;
   private taskQueue: TaskQueue;
   private sendAlert: (message: string) => Promise<void>;
@@ -43,6 +53,7 @@ export class InboxMonitor {
 
     this.pollIntervalId = setInterval(() => void this.checkAllAccounts(), POLL_INTERVAL_MS);
     this.digestIntervalId = setInterval(() => void this.guardedDigest(), DIGEST_INTERVAL_MS);
+    this.spamScanIntervalId = setInterval(() => void this.guardedSpamScan(), SPAM_SCAN_INTERVAL_MS);
 
     // First check after a short delay (but skip if we checked very recently — prevents dupes on rapid restarts)
     const lastCheckRaw = this.store.getInboxState('last_check_at');
@@ -56,7 +67,14 @@ export class InboxMonitor {
       console.log('[inbox] Skipping startup check — last check was recent');
     }
 
-    console.log(`[inbox] Monitor started (poll: 30min, digest: 2h, accounts: ${accounts.length})`);
+    // Run spam scan on startup if it hasn't run in 24h
+    const lastSpamScanRaw = this.store.getInboxState('last_spam_scan_at');
+    const spamScanAge = lastSpamScanRaw ? now - new Date(lastSpamScanRaw).getTime() : Infinity;
+    if (spamScanAge > SPAM_SCAN_INTERVAL_MS) {
+      setTimeout(() => void this.scanSpamForFalsePositives(), 30_000);
+    }
+
+    console.log(`[inbox] Monitor started (poll: 30min, digest: 2h, spam scan: 24h, accounts: ${accounts.length})`);
   }
 
   stop(): void {
@@ -67,6 +85,10 @@ export class InboxMonitor {
     if (this.digestIntervalId) {
       clearInterval(this.digestIntervalId);
       this.digestIntervalId = null;
+    }
+    if (this.spamScanIntervalId) {
+      clearInterval(this.spamScanIntervalId);
+      this.spamScanIntervalId = null;
     }
     console.log('[inbox] Monitor stopped');
   }
@@ -147,7 +169,7 @@ export class InboxMonitor {
 
       if (unseenIds.length === 0) return;
 
-      // Fetch metadata for new messages
+      // Fetch metadata for new messages (include message ID for reply drafting)
       const metadataList = await Promise.all(
         unseenIds.slice(0, 10).map(async (msgId) => {
           try {
@@ -155,13 +177,15 @@ export class InboxMonitor {
               userId: 'me',
               id: msgId,
               format: 'metadata',
-              metadataHeaders: ['From', 'Subject', 'Date'],
+              metadataHeaders: ['From', 'To', 'Subject', 'Date'],
             });
             const headers = detail.data.payload?.headers;
             const from = headers?.find((h) => h.name?.toLowerCase() === 'from')?.value ?? 'unknown';
+            const to = headers?.find((h) => h.name?.toLowerCase() === 'to')?.value ?? '';
             const subject = headers?.find((h) => h.name?.toLowerCase() === 'subject')?.value ?? '(no subject)';
             const snippet = detail.data.snippet ?? '';
-            return { from, subject, snippet };
+            const labels = detail.data.labelIds ?? [];
+            return { id: msgId, from, to, subject, snippet, labels };
           } catch {
             return null;
           }
@@ -174,21 +198,39 @@ export class InboxMonitor {
         // Create a triage task for the agent
         const ownerSessionId = getOwnerSessionId();
         const messageList = validMeta
-          .map((m) => `- From: ${m.from}\n  Subject: ${m.subject}\n  Preview: ${m.snippet.slice(0, 100)}`)
+          .map((m) => `- Message ID: ${m.id}\n  From: ${m.from}\n  To: ${m.to}\n  Subject: ${m.subject}\n  Labels: ${m.labels.join(', ')}\n  Preview: ${m.snippet.slice(0, 100)}`)
           .join('\n');
 
         const wrappedMessageList = wrapExternalContent(messageList, 'email_triage');
 
         const description =
-          `${validMeta.length} new email(s) in ${label} (${account} account). Triage for importance and alert ${OPERATOR_NAME} ONLY if something is actionable or time-sensitive.\n\n` +
+          `${validMeta.length} new email(s) in ${label} (${account} account). Triage these emails and take action.\n\n` +
           `Messages:\n${wrappedMessageList}\n\n` +
-          `Rules:\n` +
-          `- Newsletters, marketing, and notifications are NEVER urgent. Ignore them.\n` +
-          `- Google Drive/Docs access requests are NEVER urgent — ${OPERATOR_NAME} gets these via email and Slack already. Ignore them.\n` +
-          `- Only alert for: replies from real people that need a response, bills/payments due, account issues, scheduling conflicts.\n` +
-          `- When summarizing, describe what the OTHER PARTY said or needs — ${OPERATOR_NAME} already knows what they sent.\n` +
+          `## Triage Rules\n` +
+          `- Newsletters, marketing, and notifications: SKIP. Never urgent.\n` +
+          `- Google Drive/Docs access requests: SKIP.\n` +
+          `- Automated notifications, receipts, shipping updates: SKIP unless there's a problem.\n` +
+          `- Messages labeled SPAM: check if this looks like a real person (not bulk mail). If the sender appears legitimate ` +
+          `and the subject suggests a real conversation (interview, meeting, follow-up, etc.), ALERT ${OPERATOR_NAME} ` +
+          `that a potentially important email was caught by the spam filter. Include the sender, subject, and message ID.\n\n` +
+          `## Actions (in priority order)\n\n` +
+          `### 1. Alert ${OPERATOR_NAME} via Telegram for urgent/time-sensitive items\n` +
+          `- Bills/payments due, account issues, scheduling conflicts, or replies from real people that need ${OPERATOR_NAME}'s personal attention.\n` +
+          `- Describe what the OTHER PARTY said or needs — ${OPERATOR_NAME} knows what they sent.\n` +
           `- Mention which account (${label}) the email arrived in.\n` +
-          `- If nothing needs attention, respond with "No urgent emails." Do NOT list what you skipped.`;
+          `- Keep alerts plain text — no emoji in Telegram messages.\n\n` +
+          `### 2. Draft replies for emails that need a response\n` +
+          `- If someone is asking a question, requesting a meeting, following up, or otherwise expecting a reply — draft one.\n` +
+          `- Use gmail_read to get the full message, then gmail_read_thread for context if it's part of a conversation.\n` +
+          `- Create the draft using gmail_create_draft with account "primary" and from "${SECONDARY_EMAIL}". ` +
+          `This drafts in the primary inbox (so threading works) but sends from the assistant address. ` +
+          `Use the original message's Message ID as reply_to_message_id so it threads correctly.\n` +
+          `- Match ${OPERATOR_NAME}'s conversational writing style: warm but direct, professional but not stiff. Study the thread for tone cues.\n` +
+          `- ALWAYS sign the email as "Agent" — you are not ${OPERATOR_NAME}. Never sign as or impersonate ${OPERATOR_NAME}.\n` +
+          `- NEVER use emoji in email subject lines or bodies.\n` +
+          `- Keep subjects plain, professional, and concise.\n\n` +
+          `### 3. If nothing needs attention\n` +
+          `- Respond with "No urgent emails." Do NOT list what you skipped. Do NOT create any Gmail drafts for summaries or digests.`;
 
         this.taskQueue.createTask({
           title: `Inbox triage: ${account} — new messages`,
@@ -235,23 +277,23 @@ export class InboxMonitor {
         return;
       }
 
-      // Create a triage task instead of raw-dumping to Telegram
+      // Triage task — Telegram alerts only, no Gmail drafts for digests
       const ownerSessionId = getOwnerSessionId();
       const wrappedMessages = wrapExternalContent(digestParts.join('\n\n'), 'email_digest');
 
       this.taskQueue.createTask({
         title: 'Inbox digest: actionable emails',
         description:
-          `Review these unread emails and send ${OPERATOR_NAME} a brief summary of ONLY items that need action or a response.\n\n` +
+          `Review these unread emails and send ${OPERATOR_NAME} a Telegram summary of ONLY items that need action or a response.\n\n` +
           `${wrappedMessages}\n\n` +
           `Rules:\n` +
           `- Skip newsletters, marketing, automated notifications, Google Drive/Docs access requests.\n` +
           `- For each actionable item: which account it's in, who sent it, what they need, and any deadline.\n` +
           `- Summarize what the OTHER PARTY said — ${OPERATOR_NAME} knows what they sent.\n` +
-          `- If nothing is truly actionable, respond "No emails need attention." — do NOT send a digest.\n\n` +
-          `Output format (for Telegram readability):\n` +
-          `- Lead each item with urgency: "🔴 ACTION NEEDED" / "🟡 FYI" / "✅ No action needed"\n` +
-          `- Keep non-urgent items to 2-3 lines max.\n` +
+          `- If nothing is truly actionable, respond "No emails need attention." — do NOT send a digest.\n` +
+          `- Do NOT create Gmail drafts for digest summaries. Your response goes to Telegram automatically.\n` +
+          `- No emoji. Use plain text labels: "ACTION NEEDED" / "FYI".\n` +
+          `- Keep items to 2-3 lines max.\n` +
           `- Do NOT list every skipped email — just state the count (e.g., "Skipped 12 newsletters/notifications").`,
         tier: 'capable',
         source: 'system',
@@ -262,6 +304,122 @@ export class InboxMonitor {
       console.log('[inbox] Digest task created');
     } catch (err) {
       console.error('[inbox] Error sending digest:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  /** Only run spam scan if enough time has passed since the last one. */
+  private async guardedSpamScan(): Promise<void> {
+    const lastScanRaw = this.store.getInboxState('last_spam_scan_at');
+    if (lastScanRaw) {
+      const elapsed = Date.now() - new Date(lastScanRaw).getTime();
+      if (elapsed < SPAM_SCAN_INTERVAL_MS - 60_000) {
+        console.log('[inbox] Spam scan skipped — too soon since last');
+        return;
+      }
+    }
+    await this.scanSpamForFalsePositives();
+  }
+
+  /**
+   * Daily scan of spam folder for potential false positives.
+   * Looks for messages from real people with high-signal subjects
+   * (interview invitations, meeting requests, follow-ups, etc.)
+   * that may have been incorrectly filtered.
+   */
+  async scanSpamForFalsePositives(): Promise<void> {
+    try {
+      const accounts = getConfiguredAccounts();
+      const rescueCandidates: string[] = [];
+
+      for (const account of accounts) {
+        const label = ACCOUNT_LABELS[account] ?? account;
+        const gmailClient = gmail({ version: 'v1', auth: getOAuth2Client(account) });
+
+        // Search spam from the last 7 days
+        const res = await gmailClient.users.messages.list({
+          userId: 'me',
+          q: 'in:spam newer_than:7d',
+          maxResults: 30,
+        });
+
+        const messages = res.data.messages ?? [];
+        if (messages.length === 0) continue;
+
+        // Fetch metadata and check for high-signal content
+        const candidates = await Promise.all(
+          messages.filter((m) => m.id).map(async (msg) => {
+            try {
+              const detail = await gmailClient.users.messages.get({
+                userId: 'me',
+                id: msg.id!,
+                format: 'metadata',
+                metadataHeaders: ['From', 'Subject', 'Date'],
+              });
+              const headers = detail.data.payload?.headers;
+              const from = headers?.find((h) => h.name?.toLowerCase() === 'from')?.value ?? '';
+              const subject = headers?.find((h) => h.name?.toLowerCase() === 'subject')?.value ?? '';
+              const date = headers?.find((h) => h.name?.toLowerCase() === 'date')?.value ?? '';
+
+              // Skip obvious bulk mail patterns
+              const fromLower = from.toLowerCase();
+              if (fromLower.includes('noreply') || fromLower.includes('no-reply') ||
+                  fromLower.includes('mailer-daemon') || fromLower.includes('postmaster')) {
+                return null;
+              }
+
+              // Check if subject or sender matches high-signal keywords
+              const combined = `${subject} ${from}`.toLowerCase();
+              const matchedKeyword = SPAM_RESCUE_KEYWORDS.find((kw) => combined.includes(kw));
+              if (!matchedKeyword) return null;
+
+              return { id: msg.id!, from, subject, date, account: label, matchedKeyword };
+            } catch {
+              return null;
+            }
+          }),
+        );
+
+        const validCandidates = candidates.filter((c): c is NonNullable<typeof c> => c !== null);
+        for (const c of validCandidates) {
+          rescueCandidates.push(
+            `- Account: ${c.account}\n  Message ID: ${c.id}\n  From: ${c.from}\n  Subject: ${c.subject}\n  Date: ${c.date}\n  Matched: "${c.matchedKeyword}"`,
+          );
+        }
+      }
+
+      this.store.setInboxState('last_spam_scan_at', new Date().toISOString());
+
+      if (rescueCandidates.length === 0) {
+        console.log('[inbox] Spam scan complete — no false positive candidates found');
+        return;
+      }
+
+      // Create a triage task for the agent to evaluate these
+      const ownerSessionId = getOwnerSessionId();
+      const wrappedCandidates = wrapExternalContent(rescueCandidates.join('\n'), 'spam_scan');
+
+      this.taskQueue.createTask({
+        title: 'Spam scan: potential false positives',
+        description:
+          `Daily spam scan found ${rescueCandidates.length} message(s) that may be false positives. ` +
+          `Review each one and alert ${OPERATOR_NAME} via Telegram about any that appear to be from real people.\n\n` +
+          `Candidates:\n${wrappedCandidates}\n\n` +
+          `Rules:\n` +
+          `- Use gmail_read (account as noted) to read the full message before deciding.\n` +
+          `- If it looks like a real person reaching out (recruiter, colleague, business contact, etc.), ` +
+          `alert ${OPERATOR_NAME} with the sender, subject, date, and a brief summary of what they want.\n` +
+          `- If it's bulk mail that happened to match keywords, skip it.\n` +
+          `- Do NOT move messages out of spam — just flag them for ${OPERATOR_NAME} to review.\n` +
+          `- No emoji. Keep alerts concise.\n` +
+          `- If none are genuine false positives, respond "No false positives found in spam."`,
+        tier: 'capable',
+        source: 'system',
+        sessionId: ownerSessionId ?? undefined,
+      });
+
+      console.log(`[inbox] Spam scan found ${rescueCandidates.length} candidate(s) — triage task created`);
+    } catch (err) {
+      console.error('[inbox] Error scanning spam:', err instanceof Error ? err.message : err);
     }
   }
 }

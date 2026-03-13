@@ -107,17 +107,7 @@ export class Gateway {
       // 1. Ensure session exists
       this.store.getOrCreateSession(sessionId);
 
-      // 2. Send immediate ack for messages that will take a while
-      if (this.looksCapable(inbound.text)) {
-        const ack: OutboundMessage = {
-          channelType: inbound.channelType,
-          channelId: inbound.channelId,
-          text: 'On it.',
-        };
-        await channel.sendMessage(ack);
-      }
-
-      // 3. Load session history and convert to LLM message format
+      // 2. Load session history and convert to LLM message format
       const storedMessages = this.store.getSessionMessages(sessionId);
       const sessionMessages: LLMMessage[] = storedMessages
         .filter((m) => m.role === 'user' || m.role === 'assistant')
@@ -158,14 +148,10 @@ export class Gateway {
       }
 
       // 9. Send response back via the channel
-      const responseWithMeta = result.provider !== 'ollama'
-        ? `${result.response}\n\n_[${result.provider}/${result.model}]_`
-        : result.response;
-
       const outbound: OutboundMessage = {
         channelType: inbound.channelType,
         channelId: inbound.channelId,
-        text: responseWithMeta,
+        text: result.response,
       };
 
       await channel.sendMessage(outbound);
